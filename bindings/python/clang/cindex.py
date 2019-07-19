@@ -1620,6 +1620,45 @@ class Cursor(Structure):
         return StorageClass.from_id(self._storage_class)
 
     @property
+    def literal(self):
+        """
+        Retrieves the literal at this cursor
+        """
+        if not hasattr(self, '_literal'):
+            self._literal = conf.sealang.clang_Cursor_getLiteralString(self).decode('utf-8')
+
+        return self._literal
+
+    @property
+    def operator(self):
+        """Retrieve the spelling of this TypeKind."""
+        if not hasattr(self, '_operator'):
+            self._operator = conf.sealang.clang_Cursor_getOperatorString(self).decode('utf-8')
+
+        return self._operator
+
+    @property
+    def unary_operator(self):
+        """
+        Retrieves the opcode if this cursor points to a binary operator
+        """
+        if not hasattr(self, '_unaryopcode'):
+            self._unaryopcode = conf.sealang.clang_Cursor_getUnaryOpcode(self)
+
+        return UnaryOperator.from_id(self._unaryopcode)
+
+    @property
+    def binary_operator(self):
+        """
+        Retrieves the opcode if this cursor points to a binary operator
+        """
+
+        if not hasattr(self, '_binopcode'):
+            self._binopcode = conf.sealang.clang_Cursor_getBinaryOpcode(self)
+
+        return BinaryOperator.from_id(self._binopcode)
+
+    @property
     def availability(self):
         """
         Retrieves the availability of the entity pointed at by the cursor.
@@ -1965,6 +2004,114 @@ StorageClass.PRIVATEEXTERN = StorageClass(4)
 StorageClass.OPENCLWORKGROUPLOCAL = StorageClass(5)
 StorageClass.AUTO = StorageClass(6)
 StorageClass.REGISTER = StorageClass(7)
+
+class UnaryOperator(BaseEnumeration):
+    """
+    Describes the UnaryOperator of a declaration
+    """
+
+    # The unique kind objects, index by id.
+    _kinds = []
+    _name_map = None
+
+    def __bool__(self):
+        """ Allows checks of the kind ```if cursor.binary_operator:```"""
+        return self.value != 99999
+
+    # Python 2 compatibility
+    __nonzero__ = __bool__
+
+    @property
+    def is_postfix(self):
+        return self.value in (
+            UnaryOperator.POSTINC.value,
+            UnaryOperator.POSTDEC.value,
+        )
+
+    @property
+    def is_prefix(self):
+        return self.value not in (
+            UnaryOperator.POSTINC.value,
+            UnaryOperator.POSTDEC.value,
+        )
+
+    def __repr__(self):
+        return 'UnaryOperator.%s' % (self.name,)
+
+
+UnaryOperator.POSTINC = UnaryOperator(0)
+UnaryOperator.POSTDEC = UnaryOperator(1)
+UnaryOperator.PREINC = UnaryOperator(2)
+UnaryOperator.PREDEC = UnaryOperator(3)
+UnaryOperator.ADDROF = UnaryOperator(4)
+UnaryOperator.DEREF = UnaryOperator(5)
+UnaryOperator.PLUS = UnaryOperator(6)
+UnaryOperator.MINUS = UnaryOperator(7)
+UnaryOperator.NOT = UnaryOperator(8)
+UnaryOperator.LNOT = UnaryOperator(9)
+UnaryOperator.REAL = UnaryOperator(10)
+UnaryOperator.IMAG = UnaryOperator(11)
+UnaryOperator.EXTENSION = UnaryOperator(12)
+UnaryOperator.UNKNOWN = UnaryOperator(99999)
+
+
+class BinaryOperator(BaseEnumeration):
+    """
+    Describes the BinaryOperator of a declaration
+    """
+
+    # The unique kind objects, index by id.
+    _kinds = []
+    _name_map = None
+
+    def __bool__(self):
+        """ Allows checks of the kind ```if cursor.binary_operator:```"""
+        return self.value != 99999
+
+    # Python 2 compatibility
+    __nonzero__ = __bool__
+
+    @property
+    def is_assignment(self):
+        return BinaryOperator.ASSIGN.value <= self.value < BinaryOperator.COMMA.value
+
+    def __repr__(self):
+        return 'BinaryOperator.%s' % (self.name,)
+
+
+BinaryOperator.PTRMEMD = BinaryOperator(0)
+BinaryOperator.PTRMEMI = BinaryOperator(1)
+BinaryOperator.MUL = BinaryOperator(2)
+BinaryOperator.DIV = BinaryOperator(3)
+BinaryOperator.REM = BinaryOperator(4)
+BinaryOperator.ADD = BinaryOperator(5)
+BinaryOperator.SUB = BinaryOperator(6)
+BinaryOperator.SHL = BinaryOperator(7)
+BinaryOperator.SHR = BinaryOperator(8)
+BinaryOperator.LT = BinaryOperator(9)
+BinaryOperator.GT = BinaryOperator(10)
+BinaryOperator.LE = BinaryOperator(11)
+BinaryOperator.GE = BinaryOperator(12)
+BinaryOperator.EQ = BinaryOperator(13)
+BinaryOperator.NE = BinaryOperator(14)
+BinaryOperator.AND = BinaryOperator(15)
+BinaryOperator.XOR = BinaryOperator(16)
+BinaryOperator.OR = BinaryOperator(17)
+BinaryOperator.LAND = BinaryOperator(18)
+BinaryOperator.LOR = BinaryOperator(19)
+BinaryOperator.ASSIGN = BinaryOperator(20)
+BinaryOperator.MULASSIGN = BinaryOperator(21)
+BinaryOperator.DIVASSIGN = BinaryOperator(22)
+BinaryOperator.REMASSIGN = BinaryOperator(23)
+BinaryOperator.ADDASSIGN = BinaryOperator(24)
+BinaryOperator.SUBASSIGN = BinaryOperator(25)
+BinaryOperator.SHLASSIGN = BinaryOperator(26)
+BinaryOperator.SHRASSIGN = BinaryOperator(27)
+BinaryOperator.ANDASSIGN = BinaryOperator(28)
+BinaryOperator.XORASSIGN = BinaryOperator(29)
+BinaryOperator.ORASSIGN = BinaryOperator(30)
+BinaryOperator.COMMA = BinaryOperator(31)
+BinaryOperator.UNKNOWN = BinaryOperator(99999)
 
 ### Availability Kinds ###
 
@@ -3626,7 +3773,18 @@ functionList = [
    [Cursor],
    _CXString,
    _CXString.from_result),
-
+  ( "clang_Cursor_getLiteralString",
+   [Cursor],
+   _CXString,
+   _CXString.from_result),
+  ("clang_Cursor_getOperatorString",
+   [Cursor],
+   _CXString,
+   _CXString.from_result),
+  ("clang_Cursor_getUnaryOpcode",
+   [Cursor],),
+  ("clang_Cursor_getBinaryOpcode",
+   [Cursor],),
 # ("clang_getCXTUResourceUsage",
 #  [TranslationUnit],
 #  CXTUResourceUsage),
